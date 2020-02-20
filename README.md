@@ -1,11 +1,11 @@
-#  Бэйслайн к задаче [RetailHero.ai/#2](https://retailhero.ai/c/recommender_system/overview) от [@geffy](https://github.com/geffy)
+#  Демонстрация либы Faiss на примере соревнования: [RetailHero.ai/#2](https://retailhero.ai/c/recommender_system/overview) построенная на решении от [@geffy](https://github.com/geffy)
 
 Репозиторий содержит:
 * распиливание исходных данных на шарды
 * вспомогательный переиспользуемый код 
 * быстрый поиск соседей в связке с faiss
 
-## Демочтрация либы Faiss на примере соревнования:
+## Запуск
 
 Запускаем ноутбук и происходит магия.
 
