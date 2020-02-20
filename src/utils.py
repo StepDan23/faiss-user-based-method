@@ -1,9 +1,6 @@
 import hashlib
-from typing import List, Set
-
 import numpy as np
 import pandas as pd
-import torch
 from scipy import sparse as sp
 
 import config as cfg
@@ -34,13 +31,6 @@ class ProductEncoder:
         return len(self.product_idx)
 
 
-class TrainingSample:
-    def __init__(self, row: sp.coo_matrix, target_items: Set[int], client_id: str = None):
-        self.row = row
-        self.target_items = target_items
-        self.client_id = client_id
-
-
 def make_coo_row(transaction_history, product_encoder: ProductEncoder):
     idx = []
     values = []
@@ -59,43 +49,9 @@ def make_coo_row(transaction_history, product_encoder: ProductEncoder):
     )
 
 
-def average_precision(actual, recommended, k=30):
-    ap_sum = 0
-    hits = 0
-    for i in range(k):
-        product_id = recommended[i] if i < len(recommended) else None
-        if product_id is not None and product_id in actual:
-            hits += 1
-            ap_sum += hits / (i + 1)
-    return ap_sum / k
-
-
-def normalized_average_precision(actual, recommended, k=30):
-    actual = set(actual)
-    if len(actual) == 0:
-        return 0.0
-
-    ap = average_precision(actual, recommended, k=k)
-    ap_ideal = average_precision(actual, list(actual)[:k], k=k)
-    return ap / ap_ideal
-
-
 def np_normalize_matrix(v):
     norm = np.linalg.norm(v, axis=1, keepdims=True)
     return v / norm
-
-
-def coo_to_pytorch_sparse(M):
-    """
-    input: M is Scipy sparse matrix
-    output: pytorch sparse tensor in GPU
-    """
-    M = M.astype(np.float32)
-    indices = torch.from_numpy(np.vstack((M.row, M.col))).long()
-    values = torch.from_numpy(M.data)
-    shape = torch.Size(M.shape)
-    Ms = torch.sparse_coo_tensor(indices, values, shape)
-    return Ms
 
 
 def get_shard_path(n_shard, jsons_dir=cfg.JSONS_DIR):

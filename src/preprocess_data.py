@@ -4,7 +4,6 @@ import os
 import pandas as pd
 from tqdm import tqdm
 
-import config as cfg
 from utils import md5_hash
 
 
@@ -55,16 +54,14 @@ class ClientHistory:
 
 
 class RowSplitter:
-    def __init__(
-        self, output_path, n_shards=16,
-    ):
+    def __init__(self, output_path, n_shards=16,):
         self.n_shards = n_shards
         os.makedirs(
             output_path, exist_ok=True,
         )
         self.outs = []
         for i in range(self.n_shards):
-            self.outs.append(open(output_path + "/{:02d}.jsons".format(i), "w",))
+            self.outs.append(open(output_path + "{:02d}.jsons".format(i), "w",))
         self._client = None
         self._transaction = None
 
@@ -84,9 +81,7 @@ class RowSplitter:
             self._client = None
             self._transaction = None
 
-    def consume_row(
-        self, row,
-    ):
+    def consume_row(self, row):
         if self._client is not None and self._client.client_id() != row.client_id:
             self.flush()
 
@@ -117,45 +112,16 @@ class RowSplitter:
         )
 
 
-def split_data_to_chunks(
-    input_path, output_dir, n_shards=16,
-):
-    splitter = RowSplitter(output_path=output_dir, n_shards=n_shards,)
-    print("split_data_to_chunks: {} -> {}".format(input_path, output_dir,))
-    for df in tqdm(pd.read_csv(input_path, chunksize=500000,)):
-        for row in df.itertuples():
-            splitter.consume_row(row)
-    splitter.finish()
-
-
-def calculate_unique_clients_from_input(input_path,):
-    client_set = set()
-    print("calculate_unique_clients_from: {}".format(input_path))
-    for df in tqdm(pd.read_csv(input_path, chunksize=500000,)):
-        client_set.update(set([row.client_id for row in df.itertuples()]))
-    return len(client_set)
-
-
-def calculate_unique_clients_from_output(output_dir,):
-    import glob
-
-    client_cnt = 0
-    print("calculate_unique_clients_from: {}".format(output_dir))
-    for js_file in glob.glob(output_dir + "/*.jsons"):
-        for _ in open(js_file):
-            client_cnt += 1
-    return client_cnt
-
-
-if __name__ == "__main__":
-    purchases_csv_path = cfg.PURCHASE_CSV_PATH
-    output_jsons_dir = cfg.JSONS_DIR
-
-    split_data_to_chunks(
-        purchases_csv_path, output_jsons_dir, n_shards=16,
-    )
-
-    # check splitting for correctness
-    _from_input = calculate_unique_clients_from_input(purchases_csv_path)
-    _from_output = calculate_unique_clients_from_output(output_jsons_dir)
-    assert _from_input == _from_output
+def split_data_to_chunks(input_path, output_dir, n_shards):
+    already_split = True
+    for path in [output_dir + "{:02d}.jsons".format(i) for i in range(n_shards)]:
+        already_split &= os.path.exists(path)
+    if not already_split:
+        splitter = RowSplitter(output_path=output_dir, n_shards=n_shards, )
+        print("split_data_to_chunks: {} -> {}".format(input_path, output_dir,))
+        for df in tqdm(pd.read_csv(input_path, chunksize=500000, )):
+            for row in df.itertuples():
+                splitter.consume_row(row)
+        splitter.finish()
+    else:
+        print('Data is already split to chunks')
